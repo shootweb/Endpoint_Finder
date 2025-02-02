@@ -18,11 +18,16 @@ This JavaScript tool helps you **discover hidden and active API endpoints** of a
 
 3. **Paste the Script Below** and press **Enter**.
 
-4. **Interact with the Website:**  
-   Click around to trigger API calls.
+4. **View Results:**  
 
-5. **View Results:**  
-   Endpoints will appear in the console and as an overlay on the webpage.
+---
+
+## View
+
+
+https://github.com/user-attachments/assets/0f851bfa-f753-4ed2-859e-875dbeb0910e
+
+
 
 ---
 
