@@ -40,15 +40,17 @@ https://github.com/user-attachments/assets/0f851bfa-f753-4ed2-859e-875dbeb0910e
     // ===== 1. DYNAMIC MONITORING =====
     const originalXHROpen = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function(method, url) {
-        console.log(`[XHR] ${method} -> ${url}`);
-        results.add(url);
+        const cleanUrl = normalizeUrl(url);
+        console.log(`[XHR] ${method} -> ${cleanUrl}`);
+        results.add(cleanUrl);
         return originalXHROpen.apply(this, arguments);
     };
 
     const originalFetch = window.fetch;
     window.fetch = function() {
-        console.log(`[Fetch] -> ${arguments[0]}`);
-        results.add(arguments[0]);
+        const cleanUrl = normalizeUrl(arguments[0]);
+        console.log(`[Fetch] -> ${cleanUrl}`);
+        results.add(cleanUrl);
         return originalFetch.apply(this, arguments);
     };
 
@@ -64,8 +66,9 @@ https://github.com/user-attachments/assets/0f851bfa-f753-4ed2-859e-875dbeb0910e
                 .then(content => {
                     const matches = content.matchAll(regex);
                     for (const match of matches) {
-                        console.log(`[Static JS] -> ${match[0]}`);
-                        results.add(match[0]);
+                        const cleanMatch = normalizeUrl(match[0]);
+                        console.log(`[Static JS] -> ${cleanMatch}`);
+                        results.add(cleanMatch);
                     }
                 })
                 .catch(err => console.log("Error fetching script:", src, err));
@@ -75,11 +78,17 @@ https://github.com/user-attachments/assets/0f851bfa-f753-4ed2-859e-875dbeb0910e
     const pageContent = document.documentElement.outerHTML;
     const pageMatches = pageContent.matchAll(regex);
     for (const match of pageMatches) {
-        console.log(`[Static HTML] -> ${match[0]}`);
-        results.add(match[0]);
+        const cleanMatch = normalizeUrl(match[0]);
+        console.log(`[Static HTML] -> ${cleanMatch}`);
+        results.add(cleanMatch);
     }
 
-    // ===== 3. OUTPUT RESULTS =====
+    // ===== 3. NORMALIZE URL =====
+    function normalizeUrl(url) {
+        return url.split('?')[0];  // Removes query parameters
+    }
+
+    // ===== 4. OUTPUT RESULTS =====
     function displayResults() {
         console.log(`\n=== Discovered Endpoints (${results.size}) ===`);
         results.forEach(endpoint => console.log(endpoint));
@@ -92,3 +101,4 @@ https://github.com/user-attachments/assets/0f851bfa-f753-4ed2-859e-875dbeb0910e
 
     setTimeout(displayResults, 5000);
 })();
+
