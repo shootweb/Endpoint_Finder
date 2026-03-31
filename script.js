@@ -146,46 +146,36 @@
     }
 
 
-    // ===== 11. LOAD SHEETJS FOR EXCEL EXPORT =====
-    function loadSheetJS(callback) {
-        if (window.XLSX) return callback();
-        const s = document.createElement('script');
-        s.src = 'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js';
-        s.onload = callback;
-        document.head.appendChild(s);
+    // ===== 11. EXPORT (no external dependencies — CSP safe) =====
+    // Encodes a single CSV cell value: wraps in quotes and escapes inner quotes
+    function csvCell(val) {
+        const s = String(val ?? '').replace(/"/g, '""');
+        return `"${s}"`;
     }
 
-    function exportToExcel() {
-        loadSheetJS(() => {
-            const rows = [['#', 'Endpoint', 'HTTP Methods', 'Sources', 'Raw URLs', 'First Seen']];
-            let idx = 1;
-            results.forEach((entry, endpoint) => {
-                rows.push([
-                    idx++,
-                    endpoint,
-                    [...entry.methods].join(', '),
-                    [...entry.sources].join(', '),
-                    [...entry.rawUrls].join('\n'),
-                    entry.firstSeen
-                ]);
-            });
-
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(rows);
-
-            // Column widths
-            ws['!cols'] = [
-                { wch: 5 },  // #
-                { wch: 60 }, // Endpoint
-                { wch: 20 }, // Methods
-                { wch: 30 }, // Sources
-                { wch: 80 }, // Raw URLs
-                { wch: 28 }, // First Seen
-            ];
-
-            XLSX.utils.book_append_sheet(wb, ws, 'Endpoints');
-            XLSX.writeFile(wb, `endpoints_${location.hostname}_${Date.now()}.xlsx`);
+    function exportToCSV() {
+        const header = ['#', 'Endpoint', 'HTTP Methods', 'Sources', 'Raw URLs', 'First Seen'];
+        const lines = [header.map(csvCell).join(',')];
+        let idx = 1;
+        results.forEach((entry, endpoint) => {
+            lines.push([
+                idx++,
+                endpoint,
+                [...entry.methods].join(', '),
+                [...entry.sources].join(', '),
+                [...entry.rawUrls].join(' | '),
+                entry.firstSeen
+            ].map(csvCell).join(','));
         });
+
+        const csv = '\uFEFF' + lines.join('\r\n'); // BOM ensures Excel opens with correct encoding
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `endpoints_${location.hostname}_${Date.now()}.csv`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
 
@@ -223,12 +213,12 @@
         `;
 
         const exportBtn = document.createElement('button');
-        exportBtn.textContent = '⬇ Export Excel';
+        exportBtn.textContent = '⬇ Export CSV';
         exportBtn.style.cssText = `
             background: #238636; color: #fff; border: none; padding: 5px 12px;
             border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;
         `;
-        exportBtn.onclick = exportToExcel;
+        exportBtn.onclick = exportToCSV;
 
         const closeBtn = document.createElement('button');
         closeBtn.textContent = '✕';
